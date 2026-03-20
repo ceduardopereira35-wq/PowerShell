@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Frete Carlos</title>
+
+<style>
+body {
+    font-family: Arial;
+    background: #0f172a;
+    color: white;
+    padding: 15px;
+}
+h2 { text-align: center; }
+
+input, button {
+    width: 100%;
+    padding: 12px;
+    margin: 6px 0;
+    border-radius: 10px;
+    border: none;
+}
+
+input {
+    background: #1e293b;
+    color: white;
+}
+
+button {
+    background: #22c55e;
+    color: white;
+    font-size: 16px;
+}
+
+.secundario {
+    background: #3b82f6;
+}
+
+.result {
+    margin-top: 15px;
+    font-size: 18px;
+    font-weight: bold;
+}
+
+.card {
+    background: #1e293b;
+    padding: 10px;
+    border-radius: 10px;
+    margin-top: 10px;
+}
+
+.totalDia {
+    background: #22c55e;
+    padding: 12px;
+    border-radius: 10px;
+    margin-top: 15px;
+    text-align: center;
+    font-size: 18px;
+}
+</style>
+</head>
+
+<body>
+
+<h2>🚚 Frete Carlos</h2>
+
+<input id="origem" placeholder="Origem">
+<input id="destino" placeholder="Destino">
+<input id="valorKm" type="number" placeholder="Valor por KM">
+<input id="pedagio" type="number" placeholder="Pedágios">
+
+<button onclick="usarLocal()">📍 Usar minha localização</button>
+<button onclick="calcular()">Calcular</button>
+<button class="secundario" onclick="idaVolta()">Ida e Volta</button>
+
+<div class="result" id="resultado"></div>
+<div id="historico"></div>
+<div class="totalDia" id="totalDia">Total do dia: R$ 0.00</div>
+
+<script>
+let totalDia = 0;
+
+async function calcular(mult = 1) {
+    let origem = document.getElementById("origem").value;
+    let destino = document.getElementById("destino").value;
+    let valorKm = parseFloat(document.getElementById("valorKm").value) || 0;
+    let pedagio = parseFloat(document.getElementById("pedagio").value) || 0;
+
+    if (!origem || !destino) {
+        alert("Preencha origem e destino");
+        return;
+    }
+
+    try {
+        let response = await fetch(`https://router.project-osrm.org/route/v1/driving/${origem};${destino}?overview=false`);
+        let data = await response.json();
+
+        let km = (data.routes[0].distance / 1000) * mult;
+        let total = (km * valorKm) + (pedagio * mult);
+
+        totalDia += total;
+
+        document.getElementById("resultado").innerText =
+            `Distância: ${km.toFixed(1)} km | Total: R$ ${total.toFixed(2)}`;
+
+        document.getElementById("totalDia").innerText =
+            `Total do dia: R$ ${totalDia.toFixed(2)}`;
+
+        adicionarHistorico(origem, destino, total);
+
+    } catch {
+        document.getElementById("resultado").innerText = "Erro ao calcular.";
+    }
+}
+
+function idaVolta() {
+    calcular(2);
+}
+
+function adicionarHistorico(origem, destino, valor) {
+    let div = document.getElementById("historico");
+
+    let item = document.createElement("div");
+    item.className = "card";
+    item.innerText = `${origem} → ${destino} | R$ ${valor.toFixed(2)}`;
+
+    div.prepend(item);
+}
+
+function usarLocal() {
+    navigator.geolocation.getCurrentPosition(pos => {
+        let lat = pos.coords.latitude;
+        let lon = pos.coords.longitude;
+
+        document.getElementById("origem").value = lat + "," + lon;
+    });
+}
+</script>
+
+</body>
+</html>
